@@ -168,11 +168,11 @@ mut:
 type Value = Empty | string | gx.Color | Numerical | []Value
 
 
-fn (p &Parser) peek(num int) {
+fn (p &Parser) peek(num int) Token {
     return p.scanner.tokens[p.idx + num]
 }
 
-fn (mut p Parser) next() {
+fn (mut p Parser) next() Token {
     return p.scanner.tokens[p.idx++]
 }
 
@@ -180,13 +180,13 @@ fn (mut p Parser) get_value() Value {
     tok := p.next()
     match tok.typ {
         .hex {
-            val := u32(strconv.common_parse_uint(tok.val, 16, 32, true, false) or { continue })
+            val := u32(strconv.common_parse_uint(tok.val, 16, 32, true, false) or { return empty })
             return gx.hex(int(val << 8) | 0xFF)
         }
         .dec {
             mut val := Numerical{value: tok.val.f64()}
             next_tok := p.peek(1)
-            if next_tok == .unit {
+            if next_tok.typ == .unit {
                 match next_tok.val  {
                     "em" {
                         val.unit = .em
@@ -207,7 +207,7 @@ fn (mut p Parser) get_value() Value {
             }
             return val
         }
-        .ident, .string {
+        .ident, .str {
             return tok.val
         }
         else {

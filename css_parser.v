@@ -115,6 +115,7 @@ fn (mut s Scanner) scan_all() {
                         s.tokenize(.unit, s.create_ident())
                     } else if s.text[s.pos] == `%` {
                         s.tokenize(.unit, '%')
+                        s.pos++
                     }
                     continue
                 }
@@ -185,7 +186,7 @@ fn (mut p Parser) get_value() Value {
         }
         .dec {
             mut val := Numerical{value: tok.val.f64()}
-            next_tok := p.peek(1)
+            next_tok := p.peek(0)
             if next_tok.typ == .unit {
                 match next_tok.val  {
                     "em" {
@@ -255,11 +256,10 @@ fn (mut p Parser) parse() ?[]Rule {
                     }
                     .colon {
                         parsing_keys = false
-                        if p.peek(1).typ == .semicolon {
-                            value = p.get_value()
-                        } else {
-                            p.idx++
-                            mut vals := []Value{}
+                        p.idx++
+                        value = p.get_value()
+                        if p.peek(0).typ != .semicolon {
+                            mut vals := [value]
                             for p.idx < tokens.len && tokens[p.idx].typ != .semicolon {
                                 if tokens[p.idx].typ == .comma {
                                     p.idx++
@@ -268,8 +268,10 @@ fn (mut p Parser) parse() ?[]Rule {
                                 vals << p.get_value()
                                 p.idx++
                             }
+                            value = vals
                             p.idx--
                         }
+                        continue
                     }
                     .semicolon {
                         current_rule.fields[key] = value
